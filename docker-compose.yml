@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15.3
+    container_name: picpay-desafio-backend-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /data/postgres
+    volumes:
+      - picpay-desafio-backend-postgres:/data/postgres
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+  rabbitmq:
+    image: rabbitmq:3.13.1-management-alpine
+    container_name: picpay-desafio-backend-rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+
+volumes:
+  picpay-desafio-backend-postgres:
