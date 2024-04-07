@@ -8,7 +8,7 @@ export class RabbitMqEventQueueGateway implements EventQueueGateway {
   private channel: amqplib.Channel;
 
   async connect(): Promise<void> {
-    const connection = await amqplib.connect("amqp://localhost");
+    const connection = await amqplib.connect("amqp://rabbitmq");
     this.channel = await connection.createChannel();
   }
 

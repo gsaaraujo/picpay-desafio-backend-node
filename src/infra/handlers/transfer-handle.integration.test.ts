@@ -1,25 +1,20 @@
-import * as amqplib from "amqplib";
 import axios, { AxiosInstance } from "axios";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { PrismaClient, UserType as UserTypeORM } from "@prisma/client";
 
 describe("transfer-handler", () => {
   let prismaClient: PrismaClient;
-  let channel: amqplib.Channel;
   let axiosInstance: AxiosInstance;
 
   beforeAll(async () => {
     prismaClient = new PrismaClient();
-    const connection = await amqplib.connect("amqp://localhost");
-    channel = await connection.createChannel();
     axiosInstance = axios.create({
-      baseURL: "http://localhost:3000/api",
+      baseURL: process.env.API_URL,
       validateStatus: () => true,
     });
   });
 
   beforeEach(async () => {
-    await channel.purgeQueue("value_transferred");
     await prismaClient.transaction.deleteMany();
     await prismaClient.wallet.deleteMany();
     await prismaClient.user.deleteMany();
