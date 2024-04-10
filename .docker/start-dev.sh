@@ -2,6 +2,6 @@
 
 yarn install
 
-npx prisma migrate dev
+yarn migration-dev
 
 tail -f /dev/null
