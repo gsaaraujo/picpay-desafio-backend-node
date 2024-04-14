@@ -40,3 +40,11 @@ services:
       - ./.docker/rabbitmq/data/:/var/lib/rabbitmq/
       - ./.docker/rabbitmq/log/:/var/log/rabbitmq
 
+  redis:
+    image: redis:7.2.4-alpine
+    container_name: picpay-desafio-backend-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - ./.docker/redis/data:/data

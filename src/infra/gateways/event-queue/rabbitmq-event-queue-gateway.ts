@@ -3,12 +3,24 @@ import * as amqplib from "amqplib";
 import { DomainEvent } from "@shared/helpers/domain-event";
 
 import { EventQueueGateway } from "@application/gateways/event-queue-gateway";
+import { EnvironmentVariableGateway } from "@application/gateways/environment-variable-gateway";
 
 export class RabbitMqEventQueueGateway implements EventQueueGateway {
   private channel: amqplib.Channel;
+  private environmentVariableGateway: EnvironmentVariableGateway;
+
+  public constructor(environmentVariableGateway: EnvironmentVariableGateway) {
+    this.environmentVariableGateway = environmentVariableGateway;
+  }
 
   async connect(): Promise<void> {
-    const connection = await amqplib.connect("amqp://rabbitmq");
+    const rabbitMqUrl = await this.environmentVariableGateway.get("RABBITMQ_URL");
+
+    if (!rabbitMqUrl) {
+      throw new Error("RabbitMQ URL not found");
+    }
+
+    const connection = await amqplib.connect(rabbitMqUrl);
     this.channel = await connection.createChannel();
   }
 

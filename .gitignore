@@ -37,4 +37,5 @@ lerna-debug.log*
 .env
 .docker/postgres
 .docker/rabbitmq
+.docker/redis
 coverage

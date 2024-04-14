@@ -4,8 +4,8 @@ import { Failure } from "@shared/helpers/failure";
 
 import { FakeWalletGateway } from "@infra/gateways/wallet/fake-wallet-gateway";
 import { FakeAuthorizerGateway } from "@infra/gateways/authorizer/fake-authorizer-gateway";
-import { FakeEventQueueGateway } from "@infra/adapters/domain-event-queue/fake-event-queue-gateway";
-import { FakeTransactionRepository } from "@infra/gateways/transaction/fake-transaction-repository";
+import { FakeEventQueueGateway } from "@infra/gateways/event-queue/fake-event-queue-gateway";
+import { FakeTransactionRepository } from "@infra/repositories/transaction/fake-transaction-repository";
 
 import { Transfer } from "@application/usecases/transfer";
 

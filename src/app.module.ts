@@ -6,15 +6,19 @@ import { Transfer } from "@application/usecases/transfer";
 
 import { TransferHandler } from "@infra/handlers/transfer-handle";
 import { PrismaUserGateway } from "@infra/gateways/user/prisma-user-gateway";
-import { PrismaWalletGateway } from "@infra/gateways/wallet/prisma-wallet-gateway";
+import { RedisCacheGateway } from "@infra/gateways/cache/redis-cache-gateway";
 import { AxiosHttpClient } from "@infra/adapters/http-client/axios-http-client";
+import { PrismaWalletGateway } from "@infra/gateways/wallet/prisma-wallet-gateway";
 import { HttpAuthorizerGateway } from "@infra/gateways/authorizer/http-authorizer-gateway";
-import { PrismaTransactionRepository } from "@infra/gateways/transaction/prisma-transaction-repository";
-import { RabbitMqEventQueueGateway } from "@infra/adapters/domain-event-queue/rabbitmq-event-queue-gateway";
+import { GetTransactionsByCustomerId } from "@application/usecases/get-transactions-by-customer-id";
+import { RabbitMqEventQueueGateway } from "@infra/gateways/event-queue/rabbitmq-event-queue-gateway";
+import { PrismaTransactionRepository } from "@infra/repositories/transaction/prisma-transaction-repository";
+import { GetTransactionsByCustomerIdHandler } from "@infra/handlers/get-transactions-by-customer-id-handle";
+import { NodeEnvironmentVariableGateway } from "@infra/gateways/environment-variable/node-environment-variable-gateway";
 
 @Module({
   imports: [],
-  controllers: [TransferHandler],
+  controllers: [TransferHandler, GetTransactionsByCustomerIdHandler],
   providers: [
     {
       provide: "PrismaClient",
@@ -40,9 +44,22 @@ import { RabbitMqEventQueueGateway } from "@infra/adapters/domain-event-queue/ra
       useFactory: (prismaClient) => new PrismaUserGateway(prismaClient),
     },
     {
-      provide: "RabbitMqDomainEventQueueGateway",
+      provide: "NodeEnvironmentVariableGateway",
+      useClass: NodeEnvironmentVariableGateway,
+    },
+    {
+      provide: "RedisCacheGateway",
       useFactory: async () => {
-        const rabbitMqEventQueueGateway = new RabbitMqEventQueueGateway();
+        const redisCacheGateway = new RedisCacheGateway();
+        await redisCacheGateway.connect();
+        return redisCacheGateway;
+      },
+    },
+    {
+      provide: "RabbitMqDomainEventQueueGateway",
+      inject: ["NodeEnvironmentVariableGateway"],
+      useFactory: async (nodeEnvironmentVariableGateway) => {
+        const rabbitMqEventQueueGateway = new RabbitMqEventQueueGateway(nodeEnvironmentVariableGateway);
         await rabbitMqEventQueueGateway.connect();
         return rabbitMqEventQueueGateway;
       },
@@ -77,6 +94,13 @@ import { RabbitMqEventQueueGateway } from "@infra/adapters/domain-event-queue/ra
           httpAuthorizerGateway,
           rabbitMqDomainEventQueueGateway,
         );
+      },
+    },
+    {
+      provide: "GetTransactionsByCustomerId",
+      inject: ["PrismaClient", "RedisCacheGateway", "PrismaUserGateway"],
+      useFactory: (prismaClient, redisCacheGateway, prismaUserGateway) => {
+        return new GetTransactionsByCustomerId(prismaClient, redisCacheGateway, prismaUserGateway);
       },
     },
   ],
