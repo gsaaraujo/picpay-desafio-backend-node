@@ -49,8 +49,9 @@ import { NodeEnvironmentVariableGateway } from "@infra/gateways/environment-vari
     },
     {
       provide: "RedisCacheGateway",
-      useFactory: async () => {
-        const redisCacheGateway = new RedisCacheGateway();
+      inject: ["NodeEnvironmentVariableGateway"],
+      useFactory: async (nodeEnvironmentVariableGateway) => {
+        const redisCacheGateway = new RedisCacheGateway(nodeEnvironmentVariableGateway);
         await redisCacheGateway.connect();
         return redisCacheGateway;
       },

@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: picpay-desafio-backend-api
+    restart: unless-stopped
+    ports:
+      - ${API_PORT}:3000
+    volumes:
+      - .:/home/app

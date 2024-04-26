@@ -1,12 +1,24 @@
 import { createClient } from "redis";
 
 import { CacheGateway } from "@application/gateways/cache-gateway";
+import { EnvironmentVariableGateway } from "@application/gateways/environment-variable-gateway";
 
 export class RedisCacheGateway implements CacheGateway {
   private client: any;
+  private environmentVariableGateway: EnvironmentVariableGateway;
+
+  public constructor(environmentVariableGateway: EnvironmentVariableGateway) {
+    this.environmentVariableGateway = environmentVariableGateway;
+  }
 
   async connect(): Promise<void> {
-    this.client = await createClient()
+    const redisUrl = await this.environmentVariableGateway.get("REDIS_URL");
+
+    if (!redisUrl) {
+      throw new Error("Redis URL not found");
+    }
+
+    this.client = await createClient({ url: redisUrl })
       .on("error", () => {})
       .connect();
   }

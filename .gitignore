@@ -35,7 +35,5 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 .env
-.docker/postgres
-.docker/rabbitmq
-.docker/redis
+.docker
 coverage
