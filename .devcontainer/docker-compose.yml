@@ -8,6 +8,6 @@ services:
     container_name: picpay-desafio-backend-api
     restart: unless-stopped
     ports:
-      - ${API_PORT}:3000
+      - 3000:3000
     volumes:
       - .:/home/app
