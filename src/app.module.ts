@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { Transfer } from "@application/usecases/transfer";
 
 import { TransferHandler } from "@infra/handlers/transfer-handle";
+import { GetMetricsHandler } from "@infra/handlers/get-metrics-handle";
 import { PrismaUserGateway } from "@infra/gateways/user/prisma-user-gateway";
 import { RedisCacheGateway } from "@infra/gateways/cache/redis-cache-gateway";
 import { AxiosHttpClient } from "@infra/adapters/http-client/axios-http-client";
@@ -15,10 +16,11 @@ import { RabbitMqEventQueueGateway } from "@infra/gateways/event-queue/rabbitmq-
 import { PrismaTransactionRepository } from "@infra/repositories/transaction/prisma-transaction-repository";
 import { GetTransactionsByCustomerIdHandler } from "@infra/handlers/get-transactions-by-customer-id-handle";
 import { NodeEnvironmentVariableGateway } from "@infra/gateways/environment-variable/node-environment-variable-gateway";
+import { PromClientSystemMetrics } from "@infra/adapters/system-metrics/prom-client-system-metrics";
 
 @Module({
   imports: [],
-  controllers: [TransferHandler, GetTransactionsByCustomerIdHandler],
+  controllers: [GetMetricsHandler, TransferHandler, GetTransactionsByCustomerIdHandler],
   providers: [
     {
       provide: "PrismaClient",
@@ -46,6 +48,14 @@ import { NodeEnvironmentVariableGateway } from "@infra/gateways/environment-vari
     {
       provide: "NodeEnvironmentVariableGateway",
       useClass: NodeEnvironmentVariableGateway,
+    },
+    {
+      provide: "PromClientSystemMetrics",
+      useFactory: async () => {
+        const promClientSystemMetrics = new PromClientSystemMetrics();
+        await promClientSystemMetrics.init();
+        return promClientSystemMetrics;
+      },
     },
     {
       provide: "RedisCacheGateway",

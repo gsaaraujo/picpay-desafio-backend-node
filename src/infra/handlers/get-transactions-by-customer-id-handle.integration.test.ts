@@ -62,7 +62,7 @@ describe("get-transactions-by-customer-id", () => {
     });
   };
 
-  it("should get transactions", async () => {
+  it.only("should get transactions", async () => {
     await makePayer();
     await makePayee();
     await prismaClient.transaction.create({
