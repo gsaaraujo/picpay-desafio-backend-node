@@ -1,6 +1,6 @@
 {
-  "name": "Existing Docker Compose (Extend)",
-  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "name": "gsa-bank",
+  "dockerComposeFile": ["compose.yml"],
   "service": "api",
   "workspaceFolder": "/home/app",
   "features": {
@@ -14,13 +14,4 @@
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "Prisma.prisma"]
     }
   }
-
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  // "forwardPorts": [],
-
-  // Uncomment the next line if you want start specific services in your Docker Compose config.
-  // "runServices": [],
-
-  // Uncomment the next line to run commands after the container is created.
-  // "postCreateCommand": "cat /etc/os-release",
 }
