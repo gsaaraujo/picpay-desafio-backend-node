@@ -1,5 +1,5 @@
 {
-  "name": "gsa-bank",
+  "name": "picpay-desafio-backend",
   "dockerComposeFile": ["compose.yml"],
   "service": "api",
   "workspaceFolder": "/home/app",

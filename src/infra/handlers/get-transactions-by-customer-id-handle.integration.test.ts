@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from "axios";
-import { describe, it, beforeAll, beforeEach, expect } from "vitest";
+import { describe, it, beforeAll, expect, beforeEach } from "vitest";
 import { PrismaClient, UserType as UserTypeORM } from "@prisma/client";
 
 describe("get-transactions-by-customer-id", () => {
@@ -62,7 +62,7 @@ describe("get-transactions-by-customer-id", () => {
     });
   };
 
-  it.only("should get transactions", async () => {
+  it("should get transactions", async () => {
     await makePayer();
     await makePayee();
     await prismaClient.transaction.create({

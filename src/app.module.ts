@@ -1,39 +1,35 @@
-import { Axios } from "axios";
 import { Module } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 
 import { Transfer } from "@application/usecases/transfer";
 
 import { TransferHandler } from "@infra/handlers/transfer-handle";
+import { NotifyTransfer } from "@application/services/notify-transfer";
 import { GetMetricsHandler } from "@infra/handlers/get-metrics-handle";
 import { PrismaUserGateway } from "@infra/gateways/user/prisma-user-gateway";
-import { RedisCacheGateway } from "@infra/gateways/cache/redis-cache-gateway";
+import { NotifyTransferHandle } from "@infra/handlers/notify-transfer-handle";
 import { AxiosHttpClient } from "@infra/adapters/http-client/axios-http-client";
 import { PrismaWalletGateway } from "@infra/gateways/wallet/prisma-wallet-gateway";
 import { HttpAuthorizerGateway } from "@infra/gateways/authorizer/http-authorizer-gateway";
 import { GetTransactionsByCustomerId } from "@application/usecases/get-transactions-by-customer-id";
+import { PromClientSystemMetrics } from "@infra/adapters/system-metrics/prom-client-system-metrics";
 import { RabbitMqEventQueueGateway } from "@infra/gateways/event-queue/rabbitmq-event-queue-gateway";
+import { HttpNotifyTransferGateway } from "@infra/gateways/notify-transfer/http-notify-transfer-gateway";
 import { PrismaTransactionRepository } from "@infra/repositories/transaction/prisma-transaction-repository";
 import { GetTransactionsByCustomerIdHandler } from "@infra/handlers/get-transactions-by-customer-id-handle";
 import { NodeEnvironmentVariableGateway } from "@infra/gateways/environment-variable/node-environment-variable-gateway";
-import { PromClientSystemMetrics } from "@infra/adapters/system-metrics/prom-client-system-metrics";
 
 @Module({
   imports: [],
-  controllers: [GetMetricsHandler, TransferHandler, GetTransactionsByCustomerIdHandler],
+  controllers: [GetMetricsHandler, GetTransactionsByCustomerIdHandler, TransferHandler],
   providers: [
     {
       provide: "PrismaClient",
       useClass: PrismaClient,
     },
     {
-      provide: "Axios",
-      useClass: Axios,
-    },
-    {
       provide: "AxiosHttpClient",
-      inject: ["Axios"],
-      useFactory: (axios) => new AxiosHttpClient(axios),
+      useClass: AxiosHttpClient,
     },
     {
       provide: "PrismaTransactionRepository",
@@ -58,16 +54,7 @@ import { PromClientSystemMetrics } from "@infra/adapters/system-metrics/prom-cli
       },
     },
     {
-      provide: "RedisCacheGateway",
-      inject: ["NodeEnvironmentVariableGateway"],
-      useFactory: async (nodeEnvironmentVariableGateway) => {
-        const redisCacheGateway = new RedisCacheGateway(nodeEnvironmentVariableGateway);
-        await redisCacheGateway.connect();
-        return redisCacheGateway;
-      },
-    },
-    {
-      provide: "RabbitMqDomainEventQueueGateway",
+      provide: "RabbitMqEventQueueGateway",
       inject: ["NodeEnvironmentVariableGateway"],
       useFactory: async (nodeEnvironmentVariableGateway) => {
         const rabbitMqEventQueueGateway = new RabbitMqEventQueueGateway(nodeEnvironmentVariableGateway);
@@ -86,32 +73,53 @@ import { PromClientSystemMetrics } from "@infra/adapters/system-metrics/prom-cli
       useFactory: (axiosHttpClient) => new HttpAuthorizerGateway(axiosHttpClient),
     },
     {
+      provide: "HttpNotifyTransferGateway",
+      inject: ["AxiosHttpClient"],
+      useFactory: (axiosHttpClient) => new HttpNotifyTransferGateway(axiosHttpClient),
+    },
+    {
       provide: "Transfer",
       inject: [
         "PrismaTransactionRepository",
         "PrismaWalletGateway",
         "HttpAuthorizerGateway",
-        "RabbitMqDomainEventQueueGateway",
+        "RabbitMqEventQueueGateway",
       ],
       useFactory: (
         prismaTransactionRepository,
         prismaWalletGateway,
         httpAuthorizerGateway,
-        rabbitMqDomainEventQueueGateway,
+        rabbitMqEventQueueGateway,
       ) => {
         return new Transfer(
           prismaTransactionRepository,
           prismaWalletGateway,
           httpAuthorizerGateway,
-          rabbitMqDomainEventQueueGateway,
+          rabbitMqEventQueueGateway,
         );
       },
     },
     {
       provide: "GetTransactionsByCustomerId",
-      inject: ["PrismaClient", "RedisCacheGateway", "PrismaUserGateway"],
-      useFactory: (prismaClient, redisCacheGateway, prismaUserGateway) => {
-        return new GetTransactionsByCustomerId(prismaClient, redisCacheGateway, prismaUserGateway);
+      inject: ["PrismaClient"],
+      useFactory: (prismaClient) => {
+        return new GetTransactionsByCustomerId(prismaClient);
+      },
+    },
+    {
+      provide: "NotifyTransfer",
+      inject: ["HttpNotifyTransferGateway"],
+      useFactory: (httpNotifyTransferGateway) => {
+        return new NotifyTransfer(httpNotifyTransferGateway);
+      },
+    },
+    {
+      provide: "NotifyTransferHandle",
+      inject: ["NotifyTransfer", "RabbitMqEventQueueGateway"],
+      useFactory: (notifyTransfer, rabbitMqEventQueueGateway) => {
+        const notifyTransferHandle = new NotifyTransferHandle(notifyTransfer, rabbitMqEventQueueGateway);
+        notifyTransferHandle.handle();
+        return notifyTransferHandle;
       },
     },
   ],

@@ -1,5 +1,5 @@
 {
-  "name": "gsa-bank",
+  "name": "picpay-desafio-backend",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -14,7 +14,7 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "ts-check": "tsc --noEmit",
     "unit-test": "vitest run unit",
-    "integration-test": "vitest run integration",
+    "integration-test": "vitest run integration --no-file-parallelism",
     "migration-dev": "prisma migrate dev"
   },
   "dependencies": {

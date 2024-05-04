@@ -2,12 +2,12 @@ import { describe, it, beforeEach, expect } from "vitest";
 
 import { Failure } from "@shared/helpers/failure";
 
+import { Transfer } from "@application/usecases/transfer";
+
 import { FakeWalletGateway } from "@infra/gateways/wallet/fake-wallet-gateway";
 import { FakeAuthorizerGateway } from "@infra/gateways/authorizer/fake-authorizer-gateway";
 import { FakeEventQueueGateway } from "@infra/gateways/event-queue/fake-event-queue-gateway";
 import { FakeTransactionRepository } from "@infra/repositories/transaction/fake-transaction-repository";
-
-import { Transfer } from "@application/usecases/transfer";
 
 describe("transfer", () => {
   let transfer: Transfer;

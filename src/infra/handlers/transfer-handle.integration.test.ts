@@ -55,7 +55,7 @@ describe("transfer-handler", () => {
 
     await prismaClient.wallet.create({
       data: {
-        id: "f8b1f0f5-0b4b-4b3f-8e9c-0e3e4d9d1d1d",
+        id: "8fa146df-8241-4226-9bfb-f0db2d513920",
         userId: "3ce586df-e49e-495f-927f-594da350cdd2",
         balance: 1000,
       },
@@ -73,12 +73,12 @@ describe("transfer-handler", () => {
     });
 
     const payerWallet = await prismaClient.wallet.findUnique({ where: { id: "b8c2f320-1d80-4adf-84ca-6120b9b01f94" } });
-    const payeeWallet = await prismaClient.wallet.findUnique({ where: { id: "f8b1f0f5-0b4b-4b3f-8e9c-0e3e4d9d1d1d" } });
+    const payeeWallet = await prismaClient.wallet.findUnique({ where: { id: "8fa146df-8241-4226-9bfb-f0db2d513920" } });
     const transaction = await prismaClient.transaction.findFirst({
       where: {
         AND: [
           { payerWalletId: "b8c2f320-1d80-4adf-84ca-6120b9b01f94" },
-          { payeeWalletId: "f8b1f0f5-0b4b-4b3f-8e9c-0e3e4d9d1d1d" },
+          { payeeWalletId: "8fa146df-8241-4226-9bfb-f0db2d513920" },
         ],
       },
     });
@@ -93,6 +93,99 @@ describe("transfer-handler", () => {
     expect(payerWallet?.balance.toNumber()).toBe(875.5);
     expect(payeeWallet?.balance.toNumber()).toBe(1124.5);
     expect(transaction?.value.toNumber()).toBe(124.5);
+  });
+
+  it("should fail if payer and payee are the same", async () => {
+    await makePayer();
+    await makePayee();
+
+    const sut = await axiosInstance.post("/transfer", {
+      payerId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
+      payeeId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
+      value: 124.5,
+    });
+
+    expect(sut.status).toBe(409);
+    expect(sut.data).toStrictEqual({
+      status: "ERROR",
+      statusCode: 409,
+      statusText: "CONFLICT",
+      error: {
+        message: "The payer and payee cannot be the same",
+        suggestion: "Please check if the payer and payee IDs are different",
+        path: "/transfer",
+        timestamp: expect.any(String),
+      },
+    });
+  });
+
+  it("should fail if the payer is a shopkeeper", async () => {
+    await makePayer(UserTypeORM.SHOPKEEPER);
+    await makePayee();
+
+    const sut = await axiosInstance.post("/transfer", {
+      payerId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
+      payeeId: "3ce586df-e49e-495f-927f-594da350cdd2",
+      value: 124.5,
+    });
+
+    expect(sut.status).toBe(409);
+    expect(sut.data).toStrictEqual({
+      status: "ERROR",
+      statusCode: 409,
+      statusText: "CONFLICT",
+      error: {
+        message: "The payer is a shopkeeper and therefore cannot make transfers",
+        path: "/transfer",
+        timestamp: expect.any(String),
+      },
+    });
+  });
+
+  it("should fail if payer wallet is not found", async () => {
+    await makePayee();
+
+    const sut = await axiosInstance.post("/transfer", {
+      payerId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
+      payeeId: "3ce586df-e49e-495f-927f-594da350cdd2",
+      value: 124.5,
+    });
+
+    expect(sut.status).toBe(404);
+    expect(sut.data).toStrictEqual({
+      status: "ERROR",
+      statusCode: 404,
+      statusText: "NOT_FOUND",
+      error: {
+        message: "The payer with the ID 'fa6fb9dd-e67e-4c33-9c72-4a8990785b65' does not exist in our records",
+        suggestion: "Please check if the payer ID is correct",
+        path: "/transfer",
+        timestamp: expect.any(String),
+      },
+    });
+  });
+
+  it("should fail if payee wallet is not found", async () => {
+    await makePayer();
+
+    const sut = await axiosInstance.post("/transfer", {
+      payerId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
+      payeeId: "3ce586df-e49e-495f-927f-594da350cdd2",
+      value: 124.5,
+    });
+
+    expect(sut.status).toBe(404);
+    expect(sut.data).toStrictEqual({
+      status: "ERROR",
+      statusCode: 404,
+      statusText: "NOT_FOUND",
+      error: {
+        message: "The payee with the ID '3ce586df-e49e-495f-927f-594da350cdd2' does not exist in our records",
+        suggestion: "Please check if the payee ID is correct",
+        path: "/transfer",
+        timestamp: expect.any(String),
+      },
+    });
   });
 
   it("should fail if payerId is not UUID", async () => {
@@ -254,99 +347,6 @@ describe("transfer-handler", () => {
       error: {
         message: "The value of the transfer is required",
         suggestion: "Please provide the value of the transfer",
-        path: "/transfer",
-        timestamp: expect.any(String),
-      },
-    });
-  });
-
-  it("should fail if payer and payee are the same", async () => {
-    await makePayer();
-    await makePayee();
-
-    const sut = await axiosInstance.post("/transfer", {
-      payerId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
-      payeeId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
-      value: 124.5,
-    });
-
-    expect(sut.status).toBe(409);
-    expect(sut.data).toStrictEqual({
-      status: "ERROR",
-      statusCode: 409,
-      statusText: "CONFLICT",
-      error: {
-        message: "The payer and payee cannot be the same",
-        suggestion: "Please check if the payer and payee IDs are different",
-        path: "/transfer",
-        timestamp: expect.any(String),
-      },
-    });
-  });
-
-  it("should fail if the payer is a shopkeeper", async () => {
-    await makePayer(UserTypeORM.SHOPKEEPER);
-    await makePayee();
-
-    const sut = await axiosInstance.post("/transfer", {
-      payerId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
-      payeeId: "3ce586df-e49e-495f-927f-594da350cdd2",
-      value: 124.5,
-    });
-
-    expect(sut.status).toBe(409);
-    expect(sut.data).toStrictEqual({
-      status: "ERROR",
-      statusCode: 409,
-      statusText: "CONFLICT",
-      error: {
-        message: "The payer is a shopkeeper and therefore cannot make transfers",
-        path: "/transfer",
-        timestamp: expect.any(String),
-      },
-    });
-  });
-
-  it("should fail if payer wallet is not found", async () => {
-    await makePayee();
-
-    const sut = await axiosInstance.post("/transfer", {
-      payerId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
-      payeeId: "3ce586df-e49e-495f-927f-594da350cdd2",
-      value: 124.5,
-    });
-
-    expect(sut.status).toBe(404);
-    expect(sut.data).toStrictEqual({
-      status: "ERROR",
-      statusCode: 404,
-      statusText: "NOT_FOUND",
-      error: {
-        message: "The payer with the ID 'fa6fb9dd-e67e-4c33-9c72-4a8990785b65' does not exist in our records",
-        suggestion: "Please check if the payer ID is correct",
-        path: "/transfer",
-        timestamp: expect.any(String),
-      },
-    });
-  });
-
-  it("should fail if payee wallet is not found", async () => {
-    await makePayer();
-
-    const sut = await axiosInstance.post("/transfer", {
-      payerId: "fa6fb9dd-e67e-4c33-9c72-4a8990785b65",
-      payeeId: "3ce586df-e49e-495f-927f-594da350cdd2",
-      value: 124.5,
-    });
-
-    expect(sut.status).toBe(404);
-    expect(sut.data).toStrictEqual({
-      status: "ERROR",
-      statusCode: 404,
-      statusText: "NOT_FOUND",
-      error: {
-        message: "The payee with the ID '3ce586df-e49e-495f-927f-594da350cdd2' does not exist in our records",
-        suggestion: "Please check if the payee ID is correct",
         path: "/transfer",
         timestamp: expect.any(String),
       },

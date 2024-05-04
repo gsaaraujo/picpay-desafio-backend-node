@@ -4,9 +4,6 @@ import { PrismaClient } from "@prisma/client";
 import { Failure } from "@shared/helpers/failure";
 import { Either, Left, Right } from "@shared/helpers/either";
 
-import { UserGateway } from "@application/gateways/user-gateway";
-import { CacheGateway } from "@application/gateways/cache-gateway";
-
 type Input = {
   customerId: string;
 };
@@ -20,13 +17,9 @@ type Output = {
 
 export class GetTransactionsByCustomerId {
   private readonly prismaClient: PrismaClient;
-  private readonly cacheGateway: CacheGateway;
-  private readonly userGateway: UserGateway;
 
-  public constructor(prismaClient: PrismaClient, cacheGateway: CacheGateway, userGateway: UserGateway) {
+  public constructor(prismaClient: PrismaClient) {
     this.prismaClient = prismaClient;
-    this.cacheGateway = cacheGateway;
-    this.userGateway = userGateway;
   }
 
   async execute(input: Input): Promise<Either<Failure, Output[]>> {
@@ -44,17 +37,11 @@ export class GetTransactionsByCustomerId {
       return Left.create(failure);
     }
 
-    const exists = await this.userGateway.existsById(input.customerId);
+    const exists = await this.prismaClient.user.findUnique({ where: { id: input.customerId } });
 
     if (!exists) {
       const failure = new Failure("CUSTOMER_NOT_FOUND");
       return Left.create(failure);
-    }
-
-    const transactionsSerialized = await this.cacheGateway.get("GetTransactionsByCustomerId");
-
-    if (transactionsSerialized) {
-      return Right.create(JSON.parse(transactionsSerialized));
     }
 
     const transactionsORM = await this.prismaClient.transaction.findMany({
@@ -70,7 +57,6 @@ export class GetTransactionsByCustomerId {
       value: transaction.value.toNumber(),
     }));
 
-    await this.cacheGateway.set("GetTransactionsByCustomerId", JSON.stringify(transactionsOutput));
     return Right.create(transactionsOutput);
   }
 }
